@@ -13,8 +13,27 @@ Master Context : Projet A-JEPA (Action-conditional JEPA)
         Cible (Target) : Mise à jour via une moyenne mobile exponentielle (EMA) pour éviter l'effondrement dimensionnel (Collapse).
 3. Stratégies de ModélisationMasquage : 
     Utilisation d'un masquage par blocs temporels (Context-Target) pour forcer la compréhension de la dynamique à long terme.
-    Espace Latent : Arbitrage itératif entre Bottleneck (pour l'abstraction/locomotion) et Over-parameterization (pour la précision/manipulation fine).
+    Espace Latent : 
+        - Arbitrage itératif entre Bottleneck (pour l'abstraction/locomotion) et Over-parameterization (pour la précision/manipulation fine).
+        - **Régularisation VICReg** : Utilisation de termes de Variance, Invariance et Covariance pour structurer l'espace latent et empêcher l'effondrement (Collapse) sans nécessiter de paires négatives explicites.
     Inférence : Exploration d'une double prédiction (état intermédiaire + état final) pour stabiliser le chemin et limiter le "drift".
 4. Évaluation & ValidationMéthode primaire : 
     Linear Probing. Geler l'encodeur et entraîner une couche linéaire pour classifier ou régresser des tâches sémantiques.
     Indicateurs de succès : Capacité du modèle à linéariser les concepts de mouvement et à regrouper (cluster) des intentions similaires.
+
+5. Current Structure:
+
+    1 JEPA/
+    2 ├── data/
+    3 │   └── stats.pkl
+    4 ├── src/
+    5 │   ├── compute_stats.py
+    6 │   ├── dataloader.py
+    7 │   ├── load_data.py
+    8 │   ├── load_data_raw.py
+    9 │   └── main.py
+   10 ├── MASTERCONTEXT.md
+   11 ├── pyproject.toml
+   12 └── README.md
+
+
