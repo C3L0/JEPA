@@ -29,12 +29,13 @@ class RobotDataLoader:
             self.episodes[ep_idx].append(i)
             
         # Create all possible valid start indices
+        # We need: context window [i, i+W-1], action a_cond [i+W-1], target window [i+H, i+H+W-1]
         self.valid_indices = []
         for ep_idx, frame_indices in self.episodes.items():
             num_frames = len(frame_indices)
+            # Max index needed is i + prediction_horizon + window_size - 1
             if num_frames >= window_size + prediction_horizon:
                 for i in range(num_frames - window_size - prediction_horizon + 1):
-                    # Store the absolute start index in the full array
                     self.valid_indices.append(frame_indices[i])
         
         print(f"Total valid windows: {len(self.valid_indices)}")
@@ -52,25 +53,30 @@ class RobotDataLoader:
                 continue
                 
             batch_s_ctx = []
-            batch_a_ctx = []
+            batch_a_cond = []
             batch_s_target = []
             
             for start_idx in batch_start_indices:
-                # Context
+                # Context Window: [start, start + window_size - 1]
                 s_ctx = self.all_states[start_idx : start_idx + self.window_size]
-                a_ctx = self.all_actions[start_idx : start_idx + self.window_size]
                 
-                # Target
-                s_target = self.all_states[start_idx + self.window_size]
+                # Conditioning Action: action at the last frame of the context window
+                # This action leads to the state at start + window_size
+                a_cond = self.all_actions[start_idx + self.window_size - 1]
+                
+                # Target Window: [start + H, start + H + window_size - 1]
+                # Default H=1 means target window is shifted by 1 frame from context window
+                t_start = start_idx + self.prediction_horizon
+                s_target = self.all_states[t_start : t_start + self.window_size]
                 
                 batch_s_ctx.append(s_ctx)
-                batch_a_ctx.append(a_ctx)
+                batch_a_cond.append(a_cond)
                 batch_s_target.append(s_target)
                 
             yield {
-                's_ctx': jnp.array(batch_s_ctx), # (B, window, 14)
-                'a_ctx': jnp.array(batch_a_ctx), # (B, window, 14)
-                's_target': jnp.array(batch_s_target) # (B, 14)
+                's_ctx': jnp.array(batch_s_ctx),    # (B, window, 14)
+                'a_cond': jnp.array(batch_a_cond),  # (B, 14)
+                's_target': jnp.array(batch_s_target) # (B, window, 14)
             }
 
 if __name__ == "__main__":
