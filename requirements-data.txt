@@ -1,0 +1,5 @@
+numpy>=1.26
+pandas>=2.1
+pyarrow>=14.0
+# Optional: torch>=2.2 for DataLoader batching
+# Optional: jax>=0.4.25 for conversion to JAX arrays
