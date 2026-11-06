@@ -153,3 +153,5 @@ data/*.parquet
 data/*.json
 data/*.mp4
 .DS_Store
+
+aloha_static_coffee_new/
