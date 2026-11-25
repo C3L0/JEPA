@@ -27,20 +27,40 @@ class EpisodeData:
         actions = np.asarray(self.actions, dtype=np.float32)
         frame_indices = np.asarray(self.frame_indices, dtype=np.int64)
         if states.ndim != 2 or actions.ndim != 2:
-            raise ValueError("states and actions must both have shape [frames, features].")
+            raise ValueError(
+                "states and actions must both have shape [frames, features]."
+            )
         if len(states) != len(actions) or len(states) != len(frame_indices):
-            raise ValueError("states, actions and frame_indices must have the same length.")
+            raise ValueError(
+                "states, actions and frame_indices must have the same length."
+            )
         if len(states) == 0:
             raise ValueError(f"Episode {self.episode_id} is empty.")
         if not np.isfinite(states).all() or not np.isfinite(actions).all():
-            raise ValueError(f"Episode {self.episode_id} contains NaN or infinite values.")
+            raise ValueError(
+                f"Episode {self.episode_id} contains NaN or infinite values."
+            )
         object.__setattr__(self, "states", states)
         object.__setattr__(self, "actions", actions)
         object.__setattr__(self, "frame_indices", frame_indices)
         if self.timestamps is not None:
-            timestamps = np.asarray(self.timestamps, dtype=np.float32)
-            if len(timestamps) != len(states):
-                raise ValueError("timestamps must have the same length as states.")
+            timestamps = np.asarray(self.timestamps, dtype=np.float64)
+
+            if timestamps.ndim != 1 or len(timestamps) != len(states):
+                raise ValueError(
+                    "timestamps must be a 1D array with the same length as states."
+                )
+
+            if not np.isfinite(timestamps).all():
+                raise ValueError(
+                    f"Episode {self.episode_id} contains invalid timestamps."
+                )
+
+            if len(timestamps) > 1 and not np.all(np.diff(timestamps) > 0):
+                raise ValueError(
+                    f"Episode {self.episode_id} timestamps are not strictly increasing."
+                )
+
             object.__setattr__(self, "timestamps", timestamps)
 
 
@@ -106,9 +126,14 @@ def load_lerobot_episodes(
         frames.append(frame[keep])
 
     table = pd.concat(frames, ignore_index=True)
-    table = table.sort_values([episode_key, frame_key], kind="stable").reset_index(drop=True)
+    table = table.sort_values([episode_key, frame_key], kind="stable").reset_index(
+        drop=True
+    )
     if table.duplicated([episode_key, frame_key]).any():
-        duplicates = table.loc[table.duplicated([episode_key, frame_key], keep=False), [episode_key, frame_key]]
+        duplicates = table.loc[
+            table.duplicated([episode_key, frame_key], keep=False),
+            [episode_key, frame_key],
+        ]
         raise ValueError(f"Duplicate episode/frame rows found:\n{duplicates.head(10)}")
 
     episodes: list[EpisodeData] = []
@@ -131,7 +156,7 @@ def load_lerobot_episodes(
                 "Do not construct temporal windows across missing frames."
             )
         timestamps = (
-            group[timestamp_key].to_numpy(dtype=np.float32)
+            group[timestamp_key].to_numpy(dtype=np.float64)
             if timestamp_key in group.columns
             else None
         )
@@ -150,7 +175,9 @@ def load_lerobot_episodes(
     state_dims = {ep.states.shape[1] for ep in episodes}
     action_dims = {ep.actions.shape[1] for ep in episodes}
     if len(state_dims) != 1 or len(action_dims) != 1:
-        raise ValueError("All episodes must have consistent state and action dimensions.")
+        raise ValueError(
+            "All episodes must have consistent state and action dimensions."
+        )
     return episodes
 
 
@@ -162,14 +189,18 @@ def split_episode_ids(
 ) -> dict[str, list[int]]:
     """Split by episode (never by individual frame) to avoid temporal leakage."""
     if not 0 < train_fraction < 1 or not 0 < validation_fraction < 1:
-        raise ValueError("train_fraction and validation_fraction must be between 0 and 1.")
+        raise ValueError(
+            "train_fraction and validation_fraction must be between 0 and 1."
+        )
     if train_fraction + validation_fraction >= 1:
         raise ValueError("train_fraction + validation_fraction must be less than 1.")
     ids = np.asarray([ep.episode_id for ep in episodes], dtype=np.int64)
     if len(np.unique(ids)) != len(ids):
         raise ValueError("Episode IDs must be unique.")
     if len(ids) < 3:
-        raise ValueError("At least 3 episodes are required for train/validation/test splits.")
+        raise ValueError(
+            "At least 3 episodes are required for train/validation/test splits."
+        )
 
     rng = np.random.default_rng(seed)
     shuffled = rng.permutation(ids)

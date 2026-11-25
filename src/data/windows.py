@@ -31,7 +31,9 @@ class EpisodeAwareWindowDataset:
         if min_horizon < 1 or max_horizon < min_horizon:
             raise ValueError("Require 1 <= min_horizon <= max_horizon.")
         if not random_horizon and not min_horizon <= fixed_horizon <= max_horizon:
-            raise ValueError("fixed_horizon must be between min_horizon and max_horizon when random_horizon=False.")
+            raise ValueError(
+                "fixed_horizon must be between min_horizon and max_horizon when random_horizon=False."
+            )
         if not episodes:
             raise ValueError("episodes cannot be empty.")
 
@@ -51,9 +53,13 @@ class EpisodeAwareWindowDataset:
         self.state_dim = next(iter(state_dims))
         self.action_dim = next(iter(action_dims))
         if len(normalizers.state.center) != self.state_dim:
-            raise ValueError("State normalizer dimension does not match episode states.")
+            raise ValueError(
+                "State normalizer dimension does not match episode states."
+            )
         if len(normalizers.action.center) != self.action_dim:
-            raise ValueError("Action normalizer dimension does not match episode actions.")
+            raise ValueError(
+                "Action normalizer dimension does not match episode actions."
+            )
 
         # Store valid anchors (episode index, t). Requiring max_horizon here ensures
         # every randomly selected horizon is valid for every anchor.
